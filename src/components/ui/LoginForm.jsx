@@ -13,6 +13,7 @@ const LoginForm = () => {
 
   const handleLogin = () => {
     const userData = { email, password };
+    console.log(userData)
     dispatch(signinUser(userData,navigate))
   };
 

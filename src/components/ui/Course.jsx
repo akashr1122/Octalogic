@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import { getCourses, getEnroll } from "../../Redux/CourseRedux/action";
+import { getCourses } from "../../Redux/CourseRedux/action";
 
 function Course({ opencourse }) {
   const dispatch = useDispatch();
@@ -22,6 +22,13 @@ function Course({ opencourse }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [displayedCourses, setDisplayedCourses] = useState([]);
   const [searchTriggered, setSearchTriggered] = useState(false);
+  const [openActions, setOpenActions] = useState({});
+  const [isActionOpen, setIsActionOpen] = useState(false);
+  const initialCourseStatuses = {};
+  courses.forEach((course) => {
+    initialCourseStatuses[course.id] = course.status;
+  });
+  const [courseStatuses, setCourseStatuses] = useState(initialCourseStatuses);
 
   useEffect(() => {
     dispatch(getCourses(courses));
@@ -45,11 +52,52 @@ function Course({ opencourse }) {
   const handleSearchIconClick = () => {
     setSearchTriggered(true);
   };
+  const toggleActions = (courseId) => {
+    setOpenActions((prevState) => ({
+      ...prevState,
+      [courseId]: !prevState[courseId],
+    }));
+    setIsActionOpen(!isActionOpen);
+  };
 
-  
+  useEffect(() => {
+    const storedStatuses = localStorage.getItem("courseStatuses");
+    if (storedStatuses) {
+      setCourseStatuses(JSON.parse(storedStatuses));
+    }
+  }, []);
+  const handleCloseCourse = (courseId) => {
+    const updatedStatuses = {
+      ...courseStatuses,
+      [courseId]: "Closed",
+    };
+
+    setCourseStatuses(updatedStatuses);
+
+    localStorage.setItem("courseStatuses", JSON.stringify(updatedStatuses));
+  };
+
+  const handleArchiveCourse = (courseId) => {
+    const updatedStatuses = {
+      ...courseStatuses,
+      [courseId]: "Archived",
+    };
+
+    setCourseStatuses(updatedStatuses);
+
+    localStorage.setItem("courseStatuses", JSON.stringify(updatedStatuses));
+  };
+
+  const backgroundBlurClass = isActionOpen ? "abc" : "";
   return (
     <>
-      <div className="w-[full] px-10 m-auto flex flex-col h-auto  gap-10 relative">
+      <div
+        onClick={() => {
+          setOpenActions({});
+          setIsActionOpen(false);
+        }}
+        className={`w-[full] px-10 m-auto flex flex-col overflow-auto h-[100vh]  gap-10 relative ${backgroundBlurClass}`}
+      >
         <div className="top text-[28px] text-[#83858B]">
           <span>Courses</span>
         </div>
@@ -96,21 +144,73 @@ function Course({ opencourse }) {
               </TableHeader>
               <TableBody>
                 {displayedCourses.map((item) => (
-                  <TableRow className="osama border-b-[ #E5E7EB] text-sm p-0 " key={item.id}>
+                  <TableRow
+                    className="osama border-b-[ #E5E7EB] text-sm p-0 "
+                    key={item.id}
+                  >
                     <TableCell className="py-0 ">{item.name}</TableCell>
                     <TableCell className="py-0 ">{item.name}</TableCell>
                     <TableCell className="py-0 ">{item.instructor}</TableCell>
                     <TableCell className="py-0 ">{item.instrument}</TableCell>
-                    <TableCell className="py-0 ">Monday</TableCell>
-                    <TableCell className="py-0 "></TableCell>
+                    <TableCell className="py-0 ">{item.dayOfWeek}</TableCell>
+                    <TableCell className="py-0 text-center ">3</TableCell>
                     <TableCell className="py-0 ">${item.price}</TableCell>
-                    <TableCell className="py-0 ">
-                      <span className="bg-[#CFF9DF] px-4 rounded-md text-[#83858B] py-1">
-                        {item.status}
-                      </span>
+                    <TableCell
+                      className={`${
+                        item.status === "Active"
+                          ? "bg-Primary"
+                          : item.status === "Closed"
+                          ? "bg-red-200"
+                          : item.status === "Archived"
+                          ? "bg-stone-300"
+                          : ""
+                      } text-center h-[24px] w-[66px]`}
+                    >
+                      {" "}
+                      {item.status}
                     </TableCell>
-                    <TableCell className="flex flex-row justify-center">
-                      <img className="oso cursor-pointer" src={dots} alt="" />
+                    <TableCell className="flex flex-row justify-center relative">
+                      <img
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleActions(item.id);
+                        }}
+                        className="oso cursor-pointer"
+                        src={dots}
+                        alt=""
+                      />
+                      {openActions[item.id] && (
+                        <div
+                          className="action w-[167px] absolute rounded-lg -bottom-20 -left-28  p-2 flex flex-col gap-1 bg-white z-50"
+                          style={{
+                            boxShadow: "rgba(0, 0, 0, 0.1) 0px 4px 12px",
+                          }}
+                        >
+                          <div className="z-50 flex flex-col gap-3 rounded-lg ">
+                            <div className="">
+                              <span className="sam cursor-pointer">
+                                Edit Course
+                              </span>
+                            </div>
+                            <div>
+                              <span
+                                onClick={() => handleCloseCourse(item.id)}
+                                className="sam cursor-pointer"
+                              >
+                                Close Course
+                              </span>
+                            </div>
+                            <div>
+                              <span
+                                onClick={() => handleArchiveCourse(item.id)}
+                                className="sam cursor-pointer"
+                              >
+                                Archive Course
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -119,7 +219,7 @@ function Course({ opencourse }) {
           </div>
         </div>
 
-        <div className="add-btn absolute right-10 -bottom-40 ">
+        <div className="add-btn absolute right-10 -bottom-32 ">
           <Button className="bg-[#fec0ca] p-6 rounded-lg flex flex-row gap-3 text-black hover:text-white">
             <span onClick={opencourse} className="text-2xl">
               +
